@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Config Migration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBUyDZ2MhXGPXtWqz5F7S0EY4nEjeA1Nys",
+            authDomain: "introjo-roster.firebaseapp.com",
+            projectId: "introjo-roster",
+            storageBucket: "introjo-roster.firebasestorage.app",
+            messagingSenderId: "441664828500",
+            appId: "1:441664828500:web:566f8c6be0caab1e2469c1"
+        };
+
+        const appId = 'production-roster-2026';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Data to migrate
+        const HOLIDAYS_DATA = {
+            '2025': {
+                '2025-01-01': '신정', '2025-01-28': '설날', '2025-01-29': '설날', '2025-01-30': '설날', '2025-03-01': '삼일절', '2025-03-03': '대체공휴일',
+                '2025-05-05': '어린이날', '2025-05-06': '대체공휴일', '2025-06-06': '현충일', '2025-08-15': '광복절', '2025-10-03': '개천절',
+                '2025-10-05': '추석', '2025-10-06': '추석', '2025-10-07': '추석', '2025-10-08': '대체공휴일', '2025-10-09': '한글날', '2025-12-25': '성탄절'
+            },
+            '2026': {
+                '2026-01-01': '신정', '2026-02-16': '설날', '2026-02-17': '설날', '2026-02-18': '설날', '2026-03-01': '삼일절', '2026-03-02': '대체공휴일',
+                '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일', '2026-06-06': '현충일', '2026-08-15': '광복절', '2026-08-17': '대체공휴일',
+                '2026-09-24': '추석', '2026-09-25': '추석', '2026-09-26': '추석', '2026-10-03': '개천절', '2026-10-05': '대체공휴일', '2026-10-09': '한글날',
+                '2026-12-25': '성탄절'
+            },
+            '2027': {
+                '2027-01-01': '신정', '2027-02-06': '설날', '2027-02-07': '설날', '2027-02-08': '설날', '2027-02-09': '대체공휴일', '2027-03-01': '삼일절',
+                '2027-05-05': '어린이날', '2027-05-13': '부처님오신날', '2027-06-06': '현충일', '2027-08-15': '광복절', '2027-08-16': '대체공휴일',
+                '2027-09-14': '추석', '2027-09-15': '추석', '2027-09-16': '추석', '2027-10-03': '개천절', '2027-10-04': '대체공휴일', '2027-10-09': '한글날', '2027-10-11': '대체공휴일', '2027-12-25': '성탄절', '2027-12-27': '대체공휴일'
+            },
+            '2028': {
+                '2028-01-01': '신정', '2028-01-26': '설날', '2028-01-27': '설날', '2028-01-28': '설날', '2028-03-01': '삼일절', '2028-05-02': '부처님오신날', '2028-05-05': '어린이날',
+                '2028-06-06': '현충일', '2028-08-15': '광복절', '2028-10-02': '추석', '2028-10-03': '추석', '2028-10-04': '추석', '2028-10-05': '대체공휴일', '2028-10-09': '한글날', '2028-12-25': '성탄절'
+            },
+            '2029': {
+                '2029-01-01': '신정', '2029-02-12': '설날', '2029-02-13': '설날', '2029-02-14': '설날', '2029-03-01': '삼일절', '2029-05-05': '어린이날', '2029-05-07': '대체공휴일',
+                '2029-05-20': '부처님오신날', '2029-05-21': '대체공휴일', '2029-06-06': '현충일', '2029-08-15': '광복절', '2029-09-21': '추석', '2029-09-22': '추석', '2029-09-23': '추석', '2029-09-24': '대체공휴일',
+                '2029-10-03': '개천절', '2029-10-09': '한글날', '2029-12-25': '성탄절'
+            },
+            '2030': {
+                '2030-01-01': '신정', '2030-02-02': '설날', '2030-02-03': '설날', '2030-02-04': '설날', '2030-02-05': '대체공휴일', '2030-03-01': '삼일절', '2030-05-05': '어린이날', '2030-05-06': '대체공휴일',
+                '2030-05-09': '부처님오신날', '2030-06-06': '현충일', '2030-08-15': '광복절', '2030-09-11': '추석', '2030-09-12': '추석', '2030-09-13': '추석', '2030-10-03': '개천절', '2030-10-09': '한글날', '2030-12-25': '성탄절'
+            }
+        };
+
+        const TEAM_MEMBERS_DATA = {
+            'A': ['박영남', '홍성민', '김정국', '김도훈2', '이민정', '조명주', ''],
+            'B': ['오영석', '이동웅', '김윤수', '주정호', '박소희', '조미형', '송보란'],
+            'C': ['정인철', '김도영', '이은혁', '최용', '전수진', '김지혜2', ''],
+            'DAY_ONLY': ['신화동', '임현규', '김민솔', '']
+        };
+
+        const SHIFT_TYPES_DATA = {
+            DAY: { label: '주간', color: 'bg-amber-50 text-amber-700', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' },
+            NIGHT: { label: '야간', color: 'bg-indigo-50 text-indigo-700', border: 'border-indigo-200', badge: 'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200' },
+            JU_HYU: { label: '무휴', color: 'bg-slate-50 text-slate-500', border: 'border-slate-200', badge: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
+            MU_HYU: { label: '주휴', color: 'bg-emerald-50 text-emerald-700', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200' },
+            YU_HYU: { label: '유휴', color: 'bg-red-50 text-red-700', border: 'border-red-200', badge: 'bg-red-100 text-red-800 ring-1 ring-red-200' }
+        };
+
+        const ATTENDANCE_OPTIONS_DATA = {
+            options: [
+                { value: '', label: '정상', color: 'text-slate-500' },
+                { value: '연차', label: '연차', color: 'text-red-500 font-bold' },
+                { value: '반차', label: '반차', color: 'text-blue-500 font-bold' },
+                { value: '조퇴', label: '조퇴', color: 'text-yellow-600 font-bold' },
+                { value: '지각', label: '지각', color: 'text-purple-500 font-bold' },
+                { value: '교육', label: '교육', color: 'text-green-600 font-bold' },
+                { value: '훈련', label: '훈련', color: 'text-indigo-600 font-bold' },
+                { value: '특근', label: '특근', color: 'text-pink-600 font-bold' },
+                { value: '기타', label: '기타', color: 'text-gray-600 font-bold' }
+            ]
+        };
+
+        const SYSTEM_SETTINGS_DATA = {
+            baseDate: '2026-01-01',
+            shiftWorkHours: 10.25,
+            dayWorkHours: 8.0,
+            version: '1.0.0',
+            lastUpdated: new Date().toISOString()
+        };
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `p-2 mb-1 rounded text-sm ${type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                    'bg-blue-50 text-blue-700 border border-blue-200'
+                }`;
+            logEntry.innerHTML = `<span class="font-mono text-xs">${new Date().toLocaleTimeString()}</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        async function migrateConfig() {
+            const btn = document.getElementById('migrateBtn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                log('🔐 Firebase 인증 시작...');
+                await signInAnonymously(auth);
+                log('✅ 인증 완료', 'success');
+
+                // Migrate holidays
+                log('📅 공휴일 데이터 업로드 중...');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'holidays'), HOLIDAYS_DATA);
+                log('✅ 공휴일 데이터 업로드 완료', 'success');
+
+                // Migrate team members
+                log('👥 팀 구성원 데이터 업로드 중...');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'teamMembers'), TEAM_MEMBERS_DATA);
+                log('✅ 팀 구성원 데이터 업로드 완료', 'success');
+
+                // Migrate shift types
+                log('⏰ 근무 유형 데이터 업로드 중...');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'shiftTypes'), SHIFT_TYPES_DATA);
+                log('✅ 근무 유형 데이터 업로드 완료', 'success');
+
+                // Migrate attendance options
+                log('📝 출근 유형 옵션 업로드 중...');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'attendanceOptions'), ATTENDANCE_OPTIONS_DATA);
+                log('✅ 출근 유형 옵션 업로드 완료', 'success');
+
+                // Migrate system settings
+                log('⚙️ 시스템 설정 업로드 중...');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'systemSettings'), SYSTEM_SETTINGS_DATA);
+                log('✅ 시스템 설정 업로드 완료', 'success');
+
+                log('🎉 모든 설정 데이터 마이그레이션 완료!', 'success');
+                log('⚠️  이 파일은 이제 삭제하셔도 됩니다.', 'info');
+
+                document.getElementById('completionMessage').classList.remove('hidden');
+
+            } catch (error) {
+                log(`❌ 오류 발생: ${error.message}`, 'error');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        window.migrateConfig = migrateConfig;
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Firebase Config Migration</h1>
+            <p class="text-gray-600">기존 하드코딩된 설정 데이터를 Firebase로 이동합니다</p>
+        </div>
+
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-amber-700">
+                        <strong>주의:</strong> 이 작업은 한 번만 실행하면 됩니다. 완료 후 이 파일은 삭제하셔도 됩니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3">마이그레이션 항목:</h2>
+            <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-center">
+                    <span
+                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-2 text-xs font-bold">1</span>
+                    공휴일 데이터 (2025-2030)
+                </li>
+                <li class="flex items-center">
+                    <span
+                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-2 text-xs font-bold">2</span>
+                    팀 구성원 (A, B, C, 주간조)
+                </li>
+                <li class="flex items-center">
+                    <span
+                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-2 text-xs font-bold">3</span>
+                    근무 유형 정의
+                </li>
+                <li class="flex items-center">
+                    <span
+                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-2 text-xs font-bold">4</span>
+                    출근 유형 옵션
+                </li>
+                <li class="flex items-center">
+                    <span
+                        class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-2 text-xs font-bold">5</span>
+                    시스템 설정
+                </li>
+            </ul>
+        </div>
+
+        <button id="migrateBtn" onclick="migrateConfig()"
+            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mb-6">
+            🚀 마이그레이션 시작
+        </button>
+
+        <div id="completionMessage" class="hidden bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-green-700">
+                        <strong>완료!</strong> 이제 index.html과 manager.html을 사용하실 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">실행 로그:</h3>
+            <div id="logContainer" class="max-h-64 overflow-y-auto space-y-1 font-mono text-xs">
+                <div class="text-gray-400 italic">로그가 여기에 표시됩니다...</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

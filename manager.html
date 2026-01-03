@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>근무계획표 관리자</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBUyDZ2MhXGPXtWqz5F7S0EY4nEjeA1Nys",
+            authDomain: "introjo-roster.firebaseapp.com",
+            projectId: "introjo-roster",
+            storageBucket: "introjo-roster.firebasestorage.app",
+            messagingSenderId: "441664828500",
+            appId: "1:441664828500:web:566f8c6be0caab1e2469c1"
+        };
+
+        const appId = 'production-roster-2026';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let user;
+
+        // Global data storage
+        window.configData = {
+            holidays: {},
+            teamMembers: {},
+            shiftTypes: {},
+            attendanceOptions: {},
+            systemSettings: {}
+        };
+
+        window.showToast = (message, type = 'success') => {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all transform ${type === 'success' ? 'bg-emerald-500' : 'bg-red-500'
+                } text-white flex items-center gap-2`;
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }, 3000);
+        };
+
+        // Auth
+        signInAnonymously(auth).then(() => {
+            auth.onAuthStateChanged((u) => {
+                if (u) {
+                    user = u;
+                    document.getElementById('liveBadge').classList.remove('hidden');
+                    loadAllConfig();
+                }
+            });
+        });
+
+        // Load all config
+        async function loadAllConfig() {
+            try {
+                const docs = ['holidays', 'teamMembers', 'shiftTypes', 'attendanceOptions', 'systemSettings'];
+                for (const docName of docs) {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', docName));
+                    if (snap.exists()) {
+                        window.configData[docName] = snap.data();
+                    }
+                }
+                renderCurrentTab();
+                console.log('✅ Config loaded');
+            } catch (error) {
+                console.error('Load failed:', error);
+                window.showToast('설정 로드 실패', 'error');
+            }
+        }
+
+        // Save config
+        window.saveConfig = async (docName, data) => {
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', docName), data);
+                window.configData[docName] = data;
+                window.showToast('저장 완료!');
+                renderCurrentTab();
+            } catch (error) {
+                console.error('Save failed:', error);
+                window.showToast('저장 실패', 'error');
+            }
+        };
+
+        window.renderCurrentTab = () => {
+            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'team';
+            if (activeTab === 'team') renderTeamManagement();
+            else if (activeTab === 'holiday') renderHolidayManagement();
+            else if (activeTab === 'settings') renderSystemSettings();
+            else if (activeTab === 'backup') renderBackup();
+        };
+
+        // Expose to window
+        window.db = db;
+        window.appId = appId;
+        window.loadAllConfig = loadAllConfig;
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f8fafc;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body class="text-slate-700">
+    <!-- Toast -->
+    <div id="toast" class="fixed top-4 right-4 z-50 translate-x-full opacity-0">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Live Badge -->
+    <div class="fixed top-4 left-4 z-50">
+        <div id="liveBadge"
+            class="hidden flex items-center bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-emerald-100 text-xs font-bold text-emerald-600">
+            <span class="relative flex h-2 w-2 mr-2">
+                <span
+                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            LIVE
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-6">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1
+                class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+                근무계획표 관리자
+            </h1>
+            <p class="text-sm text-slate-500">설정 관리 및 데이터 백업</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-sm p-2 mb-6 flex gap-2">
+            <button onclick="switchTab('team')" data-tab="team"
+                class="tab-btn active flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-slate-600">
+                👥 팀 관리
+            </button>
+            <button onclick="switchTab('holiday')" data-tab="holiday"
+                class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-slate-600">
+                📅 공휴일 관리
+            </button>
+            <button onclick="switchTab('settings')" data-tab="settings"
+                class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-slate-600">
+                ⚙️ 시스템 설정
+            </button>
+            <button onclick="switchTab('backup')" data-tab="backup"
+                class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-slate-600">
+                💾 백업/복원
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div id="tabContent" class="bg-white rounded-xl shadow-sm p-6 min-h-[500px]">
+            <div class="text-center text-slate-400 py-20">로딩중...</div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.dataset.tab === tab) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            renderCurrentTab();
+        }
+
+        // Team Management
+        function renderTeamManagement() {
+            const content = document.getElementById('tabContent');
+            const teams = window.configData.teamMembers;
+
+            content.innerHTML = `
+                <h2 class="text-xl font-bold text-slate-800 mb-4">팀 구성원 관리</h2>
+                <p class="text-sm text-slate-500 mb-6">각 팀의 구성원을 추가, 수정, 삭제할 수 있습니다.</p>
+                ${['A', 'B', 'C', 'DAY_ONLY'].map(team => {
+                const teamName = team === 'DAY_ONLY' ? '주간조' : team + '조';
+                const members = teams[team] || [];
+                return `
+                        <div class="mb-6 p-4 border border-slate-200 rounded-lg">
+                            <h3 class="font-bold text-slate-700 mb-3">${teamName}</h3>
+                            <div class="space-y-2" id="team-${team}">
+                                ${members.map((member, idx) => `
+                                    <div class="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            value="${member}" 
+                                            placeholder="이름" 
+                                            class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            onchange="updateTeamMember('${team}', ${idx}, this.value)"
+                                        />
+                                        <button 
+                                            onclick="removeTeamMember('${team}', ${idx})"
+                                            class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                                        >삭제</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button 
+                                onclick="addTeamMember('${team}')"
+                                class="mt-3 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors"
+                            >+ 구성원 추가</button>
+                        </div>
+                    `;
+            }).join('')}
+                <button 
+                    onclick="saveTeamMembers()"
+                    class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                >저장하기</button>
+            `;
+        }
+
+        window.updateTeamMember = (team, idx, value) => {
+            if (!window.configData.teamMembers[team]) window.configData.teamMembers[team] = [];
+            window.configData.teamMembers[team][idx] = value;
+        };
+
+        window.addTeamMember = (team) => {
+            if (!window.configData.teamMembers[team]) window.configData.teamMembers[team] = [];
+            window.configData.teamMembers[team].push('');
+            renderTeamManagement();
+        };
+
+        window.removeTeamMember = (team, idx) => {
+            window.configData.teamMembers[team].splice(idx, 1);
+            renderTeamManagement();
+        };
+
+        window.saveTeamMembers = () => {
+            window.saveConfig('teamMembers', window.configData.teamMembers);
+        };
+
+        // Holiday Management
+        function renderHolidayManagement() {
+            const content = document.getElementById('tabContent');
+            const holidays = window.configData.holidays;
+
+            content.innerHTML = `
+                <h2 class="text-xl font-bold text-slate-800 mb-4">공휴일 관리</h2>
+                <p class="text-sm text-slate-500 mb-6">연도별 공휴일을 관리합니다.</p>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">연도 선택</label>
+                    <select id="yearSelect" onchange="selectYear(this.value)" class="w-full md:w-64 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        ${Object.keys(holidays).sort().reverse().map(year => `<option value="${year}">${year}년</option>`).join('')}
+                        <option value="new">+ 새 연도 추가</option>
+                    </select>
+                </div>
+
+                <div id="holidayList" class="space-y-2 mb-6"></div>
+
+                <div class="flex gap-2">
+                    <button 
+                        onclick="addHoliday()"
+                        class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100"
+                    >+ 공휴일 추가</button>
+                    <button 
+                        onclick="saveHolidays()"
+                        class="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl"
+                    >저장하기</button>
+                </div>
+            `;
+
+            const firstYear = Object.keys(holidays).sort().reverse()[0] || '2026';
+            selectYear(firstYear);
+        }
+
+        let currentYear = '2026';
+        let currentHolidays = [];
+
+        window.selectYear = (year) => {
+            if (year === 'new') {
+                const newYear = prompt('새 연도 (예: 2027):');
+                if (newYear && !window.configData.holidays[newYear]) {
+                    window.configData.holidays[newYear] = {};
+                    renderHolidayManagement();
+                }
+                return;
+            }
+
+            currentYear = year;
+            currentHolidays = [];
+            const yearHolidays = window.configData.holidays[year] || {};
+            Object.keys(yearHolidays).forEach(date => {
+                currentHolidays.push({ date, name: yearHolidays[date] });
+            });
+            currentHolidays.sort((a, b) => a.date.localeCompare(b.date));
+            renderHolidayList();
+        };
+
+        function renderHolidayList() {
+            const list = document.getElementById('holidayList');
+            list.innerHTML = currentHolidays.map((holiday, idx) => `
+                <div class="flex gap-2">
+                    <input 
+                        type="date" 
+                        value="${holiday.date}" 
+                        class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        onchange="updateHoliday(${idx}, 'date', this.value)"
+                    />
+                    <input 
+                        type="text" 
+                        value="${holiday.name}" 
+                        placeholder="공휴일 이름"
+                        class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                        onchange="updateHoliday(${idx}, 'name', this.value)"
+                    />
+                    <button 
+                        onclick="removeHoliday(${idx})"
+                        class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"
+                    >삭제</button>
+                </div>
+            `).join('');
+        }
+
+        window.updateHoliday = (idx, field, value) => {
+            currentHolidays[idx][field] = value;
+        };
+
+        window.addHoliday = () => {
+            currentHolidays.push({ date: '', name: '' });
+            renderHolidayList();
+        };
+
+        window.removeHoliday = (idx) => {
+            currentHolidays.splice(idx, 1);
+            renderHolidayList();
+        };
+
+        window.saveHolidays = () => {
+            const yearData = {};
+            currentHolidays.forEach(holiday => {
+                if (holiday.date && holiday.name) {
+                    yearData[holiday.date] = holiday.name;
+                }
+            });
+            window.configData.holidays[currentYear] = yearData;
+            window.saveConfig('holidays', window.configData.holidays);
+        };
+
+        // System Settings
+        function renderSystemSettings() {
+            const content = document.getElementById('tabContent');
+            const settings = window.configData.systemSettings;
+
+            content.innerHTML = `
+                <h2 class="text-xl font-bold text-slate-800 mb-4">시스템 설정</h2>
+                <p class="text-sm text-slate-500 mb-6">기준일, 근무시간 등 시스템 전반의 설정을 관리합니다.</p>
+                
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">기준일 (BASE_DATE)</label>
+                        <input 
+                            type="date" 
+                            id="baseDate"
+                            value="${settings.baseDate || '2026-01-01'}"
+                            class="w-full md:w-64 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <p class="text-xs text-slate-400 mt-1">교대 근무 주기 계산의 기준이 되는 날짜</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">교대 근무시간 (시간)</label>
+                        <input 
+                            type="number" 
+                            id="shiftWorkHours"
+                            step="0.25"
+                            value="${settings.shiftWorkHours || 10.25}"
+                            class="w-full md:w-64 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <p class="text-xs text-slate-400 mt-1">3조 2교대 근무자의 하루 근무시간</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">주간 근무시간 (시간)</label>
+                        <input 
+                            type="number" 
+                            id="dayWorkHours"
+                            step="0.25"
+                            value="${settings.dayWorkHours || 8.0}"
+                            class="w-full md:w-64 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <p class="text-xs text-slate-400 mt-1">주간조 근무자의 하루 근무시간</p>
+                    </div>
+                </div>
+
+                <button 
+                    onclick="saveSystemSettings()"
+                    class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                >저장하기</button>
+            `;
+        }
+
+        window.saveSystemSettings = () => {
+            const settings = {
+                baseDate: document.getElementById('baseDate').value,
+                shiftWorkHours: parseFloat(document.getElementById('shiftWorkHours').value),
+                dayWorkHours: parseFloat(document.getElementById('dayWorkHours').value),
+                version: '1.0.0',
+                lastUpdated: new Date().toISOString()
+            };
+            window.saveConfig('systemSettings', settings);
+        };
+
+        // Backup/Restore
+        function renderBackup() {
+            const content = document.getElementById('tabContent');
+
+            content.innerHTML = `
+                <h2 class="text-xl font-bold text-slate-800 mb-4">백업 및 복원</h2>
+                <p class="text-sm text-slate-500 mb-8">전체 설정 데이터를 백업하거나 복원할 수 있습니다.</p>
+                
+                <div class="space-y-6">
+                    <div class="p-6 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <h3 class="font-bold text-emerald-900 mb-2">📥 데이터 백업</h3>
+                        <p class="text-sm text-emerald-700 mb-4">현재 설정 데이터를 JSON 파일로 다운로드합니다.</p>
+                        <button 
+                            onclick="downloadConfig()"
+                            class="px-6 py-2 bg-emerald-600 text-white font-semibold rounded-lg shadow hover:bg-emerald-700 transition-colors"
+                        >백업 다운로드</button>
+                    </div>
+
+                    <div class="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h3 class="font-bold text-amber-900 mb-2">📤 데이터 복원</h3>
+                        <p class="text-sm text-amber-700 mb-4">백업 파일을 업로드하여 설정을 복원합니다.</p>
+                        <input 
+                            type="file" 
+                            id="restoreFile"
+                            accept=".json"
+                            class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 mb-3"
+                        />
+                        <button 
+                            onclick="restoreConfig()"
+                            class="px-6 py-2 bg-amber-600 text-white font-semibold rounded-lg shadow hover:bg-amber-700 transition-colors"
+                        >복원 실행</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.downloadConfig = () => {
+            const data = {
+                config: window.configData,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `config-backup-${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            window.showToast('백업 다운로드 완료!');
+        };
+
+        window.restoreConfig = async () => {
+            const file = document.getElementById('restoreFile').files[0];
+            if (!file) {
+                window.showToast('파일을 선택해주세요', 'error');
+                return;
+            }
+
+            if (!confirm('⚠️ 현재 설정을 모두 덮어씁니다. 계속하시겠습니까?')) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                if (data.config) {
+                    // Restore all config documents
+                    for (const [docName, docData] of Object.entries(data.config)) {
+                        await window.saveConfig(docName, docData);
+                    }
+                    window.showToast('복원 완료!');
+                    await window.loadAllConfig();
+                }
+            } catch (error) {
+                console.error('Restore failed:', error);
+                window.showToast('복원 실패', 'error');
+            }
+        };
+    </script>
+</body>
+
+</html>
