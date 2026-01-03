@@ -89,11 +89,11 @@
 
             try {
                 // Load all config documents
-                const holidaysSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', 'holidays'));
-                const teamMembersSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', 'teamMembers'));
-                const shiftTypesSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', 'shiftTypes'));
-                const attendanceOptionsSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', 'attendanceOptions'));
-                const systemSettingsSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', 'systemSettings'));
+                const holidaysSnap = await getDoc(doc(db, 'artifacts', appId, 'config', 'holidays'));
+                const teamMembersSnap = await getDoc(doc(db, 'artifacts', appId, 'config', 'teamMembers'));
+                const shiftTypesSnap = await getDoc(doc(db, 'artifacts', appId, 'config', 'shiftTypes'));
+                const attendanceOptionsSnap = await getDoc(doc(db, 'artifacts', appId, 'config', 'attendanceOptions'));
+                const systemSettingsSnap = await getDoc(doc(db, 'artifacts', appId, 'config', 'systemSettings'));
 
                 // Update global variables with Firebase config data
                 if (holidaysSnap.exists()) {

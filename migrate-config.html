@@ -124,27 +124,27 @@
 
                 // Migrate holidays
                 log('📅 공휴일 데이터 업로드 중...');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'holidays'), HOLIDAYS_DATA);
+                await setDoc(doc(db, 'artifacts', appId, 'config', 'holidays'), HOLIDAYS_DATA);
                 log('✅ 공휴일 데이터 업로드 완료', 'success');
 
                 // Migrate team members
                 log('👥 팀 구성원 데이터 업로드 중...');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'teamMembers'), TEAM_MEMBERS_DATA);
+                await setDoc(doc(db, 'artifacts', appId, 'config', 'teamMembers'), TEAM_MEMBERS_DATA);
                 log('✅ 팀 구성원 데이터 업로드 완료', 'success');
 
                 // Migrate shift types
                 log('⏰ 근무 유형 데이터 업로드 중...');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'shiftTypes'), SHIFT_TYPES_DATA);
+                await setDoc(doc(db, 'artifacts', appId, 'config', 'shiftTypes'), SHIFT_TYPES_DATA);
                 log('✅ 근무 유형 데이터 업로드 완료', 'success');
 
                 // Migrate attendance options
                 log('📝 출근 유형 옵션 업로드 중...');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'attendanceOptions'), ATTENDANCE_OPTIONS_DATA);
+                await setDoc(doc(db, 'artifacts', appId, 'config', 'attendanceOptions'), ATTENDANCE_OPTIONS_DATA);
                 log('✅ 출근 유형 옵션 업로드 완료', 'success');
 
                 // Migrate system settings
                 log('⚙️ 시스템 설정 업로드 중...');
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', 'systemSettings'), SYSTEM_SETTINGS_DATA);
+                await setDoc(doc(db, 'artifacts', appId, 'config', 'systemSettings'), SYSTEM_SETTINGS_DATA);
                 log('✅ 시스템 설정 업로드 완료', 'success');
 
                 log('🎉 모든 설정 데이터 마이그레이션 완료!', 'success');

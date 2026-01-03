@@ -68,7 +68,7 @@
             try {
                 const docs = ['holidays', 'teamMembers', 'shiftTypes', 'attendanceOptions', 'systemSettings'];
                 for (const docName of docs) {
-                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'config', docName));
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'config', docName));
                     if (snap.exists()) {
                         window.configData[docName] = snap.data();
                     }
@@ -84,7 +84,7 @@
         // Save config
         window.saveConfig = async (docName, data) => {
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'config', docName), data);
+                await setDoc(doc(db, 'artifacts', appId, 'config', docName), data);
                 window.configData[docName] = data;
                 window.showToast('저장 완료!');
                 renderCurrentTab();
