@@ -58,6 +58,8 @@ select.st{font-weight:700;color:#fff;border:none}
 .del:hover{color:#a3291c}
 .addmini{border:1px dashed #9a917d;background:#fff;color:#6b6353;border-radius:5px;padding:3px 10px;font:inherit;font-weight:600;cursor:pointer;font-size:12px;margin-left:auto}
 .addmini:hover{border-color:#26221a;color:#26221a}
+.addmini.delslot{margin-left:6px;border-color:#d8b4ae;color:#a3291c}
+.addmini.delslot:hover{border-color:#a3291c;background:#fbf2f0;color:#a3291c}
 .addbtn{border:1.5px dashed #9a917d;background:transparent;color:#6b6353;border-radius:5px;padding:7px 12px;font:inherit;font-weight:600;cursor:pointer;font-size:12.5px}
 .addbtn:hover{border-color:#26221a;color:#26221a}
 .savebar{text-align:center;padding:22px 24px 4px}
@@ -287,6 +289,8 @@ function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.get
 function nowHM(){const d=new Date();return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
 function normalize(d){
   d=d||{};if(!Array.isArray(d.log))d.log=[];
+  /* 시작 시각이 24시 이상인 잘못 추가된 시간대(24:00~31:00 등) 제거 */
+  d.log=d.log.filter(e=>{const m=/^\s*(\d{1,2}):/.exec((e&&e.time)||"");return !(m&&Number(m[1])>=24)});
   if(!Array.isArray(d.hand)||!d.hand.length)d.hand=[blankHand()];
   d.hand.forEach(c=>{if(!Array.isArray(c.items)||!c.items.length)c.items=[blankHItem()]});
   if(!Array.isArray(d.spec))d.spec=[];return d;
@@ -355,7 +359,8 @@ function renderHours(){
     const ents=groups[tm]||[];
     const rows=ents.length?ents.map(logRow).join(""):'<div class="emptyrow">기록 없음 — ＋호기로 추가</div>';
     return `<div class="slot"><div class="slot-time">${tm?esc(tm):'시간 미지정'} <span class="slot-cnt">${ents.length?ents.length+'건':''}</span>
-      <button class="addmini" data-act="addLog" data-time="${esc(tm)}">＋ 호기</button></div>
+      <button class="addmini" data-act="addLog" data-time="${esc(tm)}">＋ 호기</button>
+      <button class="addmini delslot" data-act="delSlot" data-time="${esc(tm)}" title="이 시간대 삭제">🗑 시간대 삭제</button></div>
       <div class="slot-rows">${rows}</div></div>`;
   }).join("");
 }
@@ -483,6 +488,7 @@ app.addEventListener("click",e=>{
   if(act==="addLog")data.log.push(blankLog(b.dataset.time||""));
   else if(act==="delLog")data.log=data.log.filter(x=>x.id!==id);
   else if(act==="addTime"){const t=prompt("추가할 시간대 (예: 12:00~13:00)");if(t===null)return;data.log.push(blankLog(t.trim()));}
+  else if(act==="delSlot"){const tm=b.dataset.time||"";const has=data.log.some(x=>(x.time||"")===tm&&(x.status||(x.text&&x.text.trim())));if(has&&!confirm(`'${tm||"시간 미지정"}' 시간대의 기록을 삭제할까요?`))return;data.log=data.log.filter(x=>(x.time||"")!==tm);}
   else if(act==="impLog"){const o=data.log.find(x=>x.id===id);if(o)o.imp=!o.imp;}
   else if(act==="addHand")data.hand.push(blankHand());
   else if(act==="delHand")data.hand=data.hand.filter(c=>c.id!==id);
@@ -493,7 +499,7 @@ app.addEventListener("click",e=>{
   else if(act==="delSpec")data.spec=data.spec.filter(x=>x.id!==id);
   else if(act==="impSpec"){const o=data.spec.find(x=>x.id===id);if(o)o.imp=!o.imp;}
   else return;
-  if(act.indexOf("Log")>=0||act==="addTime")renderHours();
+  if(act.indexOf("Log")>=0||act==="addTime"||act==="delSlot")renderHours();
   else if(act.indexOf("Spec")>=0)renderSpec();
   else renderHand();
   autoGrowAll();scheduleSave();
