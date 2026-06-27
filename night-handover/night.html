@@ -69,10 +69,15 @@ select.st{font-weight:700;color:#fff;border:none}
 /* 인수인계 카드 */
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px}
 .hcard{background:#fdfcf8;border:1.5px solid #26221a;border-radius:8px;padding:12px 14px;box-shadow:3px 3px 0 #cdd4dd}
-.hhead{display:grid;grid-template-columns:96px 60px 1fr 22px;gap:6px;align-items:center;margin-bottom:9px}
+.hhead{display:grid;grid-template-columns:1fr auto 22px;gap:6px;align-items:center;margin-bottom:9px}
 .hhead .hk{color:#6b6353;font-weight:600;font-size:12px;text-align:right}
 .hhead select.mc{font-weight:700;border:1.5px solid #1f2733;border-radius:5px;padding:5px 6px;background:#eef2f7;font-size:13px}
 .mini{border:1px solid #d6cfbd;border-radius:4px;padding:6px 7px;font:inherit;font-size:12.5px;background:#fff;width:100%}
+.hprods{display:flex;flex-direction:column;gap:8px}
+.hprod{border:1px solid #e0dac9;border-radius:6px;padding:8px;background:#fbfaf5}
+.hprodhead{display:grid;grid-template-columns:auto 1fr 22px;gap:6px;align-items:center;margin-bottom:6px}
+.hprodhead .hk{color:#6b6353;font-weight:600;font-size:12px}
+.hprodhead .mini{font-weight:600;background:#fff}
 .hitems{display:flex;flex-direction:column;gap:5px}
 .hirow{display:grid;grid-template-columns:84px 1fr auto 30px 22px;gap:6px;align-items:start}
 .hirow.impon{background:#fdeedf;border-radius:5px;box-shadow:inset 3px 0 0 #d35400}
@@ -124,11 +129,7 @@ select.st{font-weight:700;color:#fff;border:none}
   .lgrow>.del{grid-area:del}
   /* 인수인계 카드 1열 */
   .hgrid{grid-template-columns:1fr}
-  .hhead{grid-template-columns:1fr 22px;grid-template-areas:"mc del" "hk hk" "prod prod";align-items:center;gap:5px}
-  .hhead>select.mc{grid-area:mc}
-  .hhead>.del{grid-area:del}
-  .hhead>.hk{grid-area:hk;text-align:left}
-  .hhead>.mini{grid-area:prod}
+  .hhead{grid-template-columns:1fr auto 22px;gap:5px}
   /* 인수인계 항목·특이사항: 2행 배치 */
   .hirow,.srow{grid-template-columns:1fr auto 30px 26px;grid-template-areas:"st st imp del" "txt txt txt txt" "fmt fmt fmt fmt";gap:5px}
   .hirow>select.st,.srow>select.st{grid-area:st}
@@ -185,7 +186,7 @@ select.st{font-weight:700;color:#fff;border:none}
 
 <div id="app">
   <div class="sec">
-    <h2>📋 인수인계 사항 <span style="font-size:11px;font-weight:400;color:#6b6353">· 설비호기·제품명·코아 + 내용 (🚩 중요표시, 글자색 변경)</span></h2>
+    <h2>📋 인수인계 사항 <span style="font-size:11px;font-weight:400;color:#6b6353">· 설비호기 ＞ 제품 ＞ 내용 (🚩 중요표시, 글자색 변경)</span></h2>
     <div class="hgrid" id="handover"></div>
     <button class="addbtn" data-act="addHand">＋ 인수인계 카드 추가</button>
   </div>
@@ -216,7 +217,7 @@ select.st{font-weight:700;color:#fff;border:none}
 <div class="footnote">
   ※ 날짜를 고르면 <b>평일/주말/공휴일</b> 자동 판별(2026 한국 공휴일 내장). <b>평일</b>=야간(19:00~07:00) 기록+인수인계, <b>주말·공휴일</b>=24시간(07:00~익일 07:00)+인수인계. 자동이 안 맞으면 <b>모드</b>에서 변경.<br>
   ※ <b>카톡 이미지</b>는 누른 시각 기준 <b>주간(07:00~19:00)/야간(19:00~07:00)</b>을 우측 상단에 표시하며, 주간엔 주간 근무자·야간엔 야간 근무자 이름이 자동 노출됩니다.<br>
-  ※ <b>인수인계 카드</b>: 설비호기·제품명·코아를 적고 그 아래 내용을 한 줄씩 추가(＋내용). <b>특이사항</b>은 인수인계 외 별도 전달사항.<br>
+  ※ <b>인수인계 카드</b>: 카드마다 <b>설비 호기</b>를 고르고, 그 아래 <b>＋제품 추가</b>로 제품을 늘린 뒤 각 제품 밑에 <b>＋내용</b>으로 내용을 추가합니다(제품·내용 개별 삭제 가능). <b>특이사항</b>은 인수인계 외 별도 전달사항.<br>
   ※ <b>🚩 중요</b>=주황 강조+관리자 패널 최상단, <b>글자색</b>(🔴🔵🟠🟢) 변경 가능. 시간대 기록은 실제 작성시각 자동저장. 데이터는 날짜별 클라우드 저장(실시간 아님 → 새로고침).
 </div>
 
@@ -268,7 +269,8 @@ let rid=0;const nid=p=>(p||"i")+Date.now().toString(36)+(rid++);
 
 function blankLog(time){return{id:nid("g"),time:time||"",machine:"",status:"",text:"",logged:"",imp:false}}
 function blankHItem(){return{id:nid("hi"),status:"참고",text:"",imp:false}}
-function blankHand(){return{id:nid("h"),machine:"",product:"",items:[blankHItem()]}}
+function blankProduct(){return{id:nid("p"),name:"",items:[blankHItem()]}}
+function blankHand(){return{id:nid("h"),machine:"",products:[blankProduct()]}}
 function blankSpec(){return{id:nid("s"),status:"참고",text:"",imp:false}}
 function fmtBtns(){return `<button data-fmt="#c0392b" title="빨강">🔴</button><button data-fmt="#2c5fad" title="파랑">🔵</button><button data-fmt="#d35400" title="주황">🟠</button><button data-fmt="" title="기본색">⬛</button>`}
 function stripHtml(h){const d=document.createElement("div");d.innerHTML=h||"";return (d.textContent||"").trim()}
@@ -292,7 +294,15 @@ function normalize(d){
   /* 시작 시각이 24시 이상인 잘못 추가된 시간대(24:00~31:00 등) 제거 */
   d.log=d.log.filter(e=>{const m=/^\s*(\d{1,2}):/.exec((e&&e.time)||"");return !(m&&Number(m[1])>=24)});
   if(!Array.isArray(d.hand)||!d.hand.length)d.hand=[blankHand()];
-  d.hand.forEach(c=>{if(!Array.isArray(c.items)||!c.items.length)c.items=[blankHItem()]});
+  d.hand.forEach(c=>{
+    /* 구버전(카드당 제품 1개·평면 items) → 신버전(제품 배열) 이전 */
+    if(!Array.isArray(c.products)){
+      c.products=[{id:nid("p"),name:c.product||"",items:(Array.isArray(c.items)&&c.items.length)?c.items:[blankHItem()]}];
+    }
+    delete c.product;delete c.items;
+    if(!c.products.length)c.products=[blankProduct()];
+    c.products.forEach(p=>{if(!Array.isArray(p.items)||!p.items.length)p.items=[blankHItem()]});
+  });
   if(!Array.isArray(d.spec))d.spec=[];return d;
 }
 
@@ -385,21 +395,32 @@ function renderReport(){
 /* ── 인수인계 카드 ── */
 function renderHand(){
   document.getElementById("handover").innerHTML=data.hand.map(c=>{
-    const items=c.items.map(it=>`<div class="hirow ${it.imp?'impon':''}">
-      ${eqStSel(it.status,`data-sec="hitem" data-card="${c.id}" data-id="${it.id}" data-f="status"`)}
-      <div class="rich" contenteditable="true" data-sec="hitem" data-card="${c.id}" data-id="${it.id}" data-f="text" data-ph="인수인계 내용 (중요 부분 드래그 후 🔴)">${it.text||""}</div>
-      <div class="fmt">${fmtBtns()}</div>
-      <button class="impbtn ${it.imp?'on':''}" data-act="impHItem" data-card="${c.id}" data-id="${it.id}" title="이 항목 중요">🚩</button>
-      <button class="del" data-act="delHItem" data-card="${c.id}" data-id="${it.id}" title="삭제">✕</button>
-    </div>`).join("");
+    const prods=c.products.map(p=>{
+      const items=p.items.map(it=>`<div class="hirow ${it.imp?'impon':''}">
+        ${eqStSel(it.status,`data-sec="hitem" data-card="${c.id}" data-prod="${p.id}" data-id="${it.id}" data-f="status"`)}
+        <div class="rich" contenteditable="true" data-sec="hitem" data-card="${c.id}" data-prod="${p.id}" data-id="${it.id}" data-f="text" data-ph="인수인계 내용 (중요 부분 드래그 후 🔴)">${it.text||""}</div>
+        <div class="fmt">${fmtBtns()}</div>
+        <button class="impbtn ${it.imp?'on':''}" data-act="impHItem" data-card="${c.id}" data-prod="${p.id}" data-id="${it.id}" title="이 항목 중요">🚩</button>
+        <button class="del" data-act="delHItem" data-card="${c.id}" data-prod="${p.id}" data-id="${it.id}" title="삭제">✕</button>
+      </div>`).join("");
+      return `<div class="hprod">
+        <div class="hprodhead">
+          <span class="hk">제품</span>
+          <input class="mini" data-sec="prod" data-card="${c.id}" data-id="${p.id}" data-f="name" value="${esc(p.name)}" placeholder="제품명">
+          <button class="del" data-act="delProd" data-card="${c.id}" data-id="${p.id}" title="제품 삭제">✕</button>
+        </div>
+        <div class="hitems">${items}</div>
+        <button class="addbtn" data-act="addHItem" data-card="${c.id}" data-id="${p.id}" style="margin-top:6px;padding:4px 10px">＋ 내용</button>
+      </div>`;
+    }).join("");
     return `<div class="hcard">
       <div class="hhead">
         ${macSel(c.machine,`data-sec="hand" data-id="${c.id}" data-f="machine"`,'mc')}
-        <span class="hk">제품명</span><input class="mini" data-sec="hand" data-id="${c.id}" data-f="product" value="${esc(c.product)}" placeholder="제품명">
+        <span class="hk">설비 호기</span>
         <button class="del" data-act="delHand" data-id="${c.id}" title="카드 삭제">✕</button>
       </div>
-      <div class="hitems">${items}</div>
-      <button class="addbtn" data-act="addHItem" data-id="${c.id}" style="margin-top:7px;padding:5px 10px">＋ 내용</button>
+      <div class="hprods">${prods}</div>
+      <button class="addbtn" data-act="addProd" data-id="${c.id}" style="margin-top:8px">＋ 제품 추가</button>
     </div>`;
   }).join("");
 }
@@ -418,7 +439,7 @@ function renderSpec(){
 }
 
 /* ── 요약 ── */
-function handItemsFlat(){const a=[];data.hand.forEach(c=>c.items.forEach(it=>{if(stripHtml(it.text)||it.status)a.push({...it,machine:c.machine,product:c.product})}));return a}
+function handItemsFlat(){const a=[];data.hand.forEach(c=>c.products.forEach(p=>p.items.forEach(it=>{if(stripHtml(it.text)||it.status)a.push({...it,machine:c.machine,product:p.name})})));return a}
 function renderSummary(){
   const impItems=[];
   data.log.forEach(e=>{if(e.imp&&(e.text||e.status))impItems.push({t:`${e.time||''} ${e.machine||''} — ${e.text||''}`,s:e.status})});
@@ -462,7 +483,8 @@ function findObj(el){
   const s=el.dataset.sec,id=el.dataset.id;
   if(s==="log")return data.log.find(e=>e.id===id);
   if(s==="hand")return data.hand.find(c=>c.id===id);
-  if(s==="hitem"){const c=data.hand.find(c=>c.id===el.dataset.card);return c&&c.items.find(i=>i.id===id)}
+  if(s==="prod"){const c=data.hand.find(c=>c.id===el.dataset.card);return c&&c.products.find(p=>p.id===id)}
+  if(s==="hitem"){const c=data.hand.find(c=>c.id===el.dataset.card);const p=c&&c.products.find(p=>p.id===el.dataset.prod);return p&&p.items.find(i=>i.id===id)}
   if(s==="spec")return data.spec.find(e=>e.id===id);
   return null;
 }
@@ -492,9 +514,11 @@ app.addEventListener("click",e=>{
   else if(act==="impLog"){const o=data.log.find(x=>x.id===id);if(o)o.imp=!o.imp;}
   else if(act==="addHand")data.hand.push(blankHand());
   else if(act==="delHand")data.hand=data.hand.filter(c=>c.id!==id);
-  else if(act==="addHItem"){const c=data.hand.find(c=>c.id===id);if(c)c.items.push(blankHItem());}
-  else if(act==="delHItem"){const c=data.hand.find(c=>c.id===b.dataset.card);if(c)c.items=c.items.filter(i=>i.id!==id);}
-  else if(act==="impHItem"){const c=data.hand.find(c=>c.id===b.dataset.card);const o=c&&c.items.find(i=>i.id===id);if(o)o.imp=!o.imp;}
+  else if(act==="addProd"){const c=data.hand.find(c=>c.id===id);if(c)c.products.push(blankProduct());}
+  else if(act==="delProd"){const c=data.hand.find(c=>c.id===b.dataset.card);if(c){c.products=c.products.filter(p=>p.id!==id);if(!c.products.length)c.products.push(blankProduct());}}
+  else if(act==="addHItem"){const c=data.hand.find(c=>c.id===b.dataset.card);const p=c&&c.products.find(p=>p.id===id);if(p)p.items.push(blankHItem());}
+  else if(act==="delHItem"){const c=data.hand.find(c=>c.id===b.dataset.card);const p=c&&c.products.find(p=>p.id===b.dataset.prod);if(p){p.items=p.items.filter(i=>i.id!==id);if(!p.items.length)p.items.push(blankHItem());}}
+  else if(act==="impHItem"){const c=data.hand.find(c=>c.id===b.dataset.card);const p=c&&c.products.find(p=>p.id===b.dataset.prod);const o=p&&p.items.find(i=>i.id===id);if(o)o.imp=!o.imp;}
   else if(act==="addSpec")data.spec.push(blankSpec());
   else if(act==="delSpec")data.spec=data.spec.filter(x=>x.id!==id);
   else if(act==="impSpec"){const o=data.spec.find(x=>x.id===id);if(o)o.imp=!o.imp;}
@@ -523,8 +547,8 @@ document.getElementById("btnXls").onclick=()=>{
   const aoa=[[`작업 인수인계 일지  ${curDate}  (${curMode()})  주간: ${dayWorker} / 야간: ${nightWorker}`],[]];
   aoa.push(["[ 시간대별 작업 기록 ]   주간: "+dayWorker+" / 야간: "+nightWorker],["시간대","호기","상태","내용","기록시각","중요"]);
   data.log.forEach(e=>aoa.push([e.time,e.machine,e.status,e.text,e.logged,e.imp?"★":""]));
-  aoa.push([],["[ 인수인계 사항 ]"],["호기","제품명","상태","내용","중요"]);
-  data.hand.forEach(c=>{c.items.forEach((it,i)=>aoa.push([i?"":c.machine,i?"":c.product,it.status,stripHtml(it.text),it.imp?"★":""]))});
+  aoa.push([],["[ 인수인계 사항 ]"],["호기","제품","상태","내용","중요"]);
+  data.hand.forEach(c=>{let ci=0;c.products.forEach(p=>{p.items.forEach((it,pi)=>{aoa.push([ci?"":c.machine,pi?"":p.name,it.status,stripHtml(it.text),it.imp?"★":""]);ci++})})});
   aoa.push([],["[ 특이사항 ]"],["상태","내용","중요"]);
   data.spec.forEach(e=>aoa.push([e.status,stripHtml(e.text),e.imp?"★":""]));
   const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[{wch:14},{wch:14},{wch:12},{wch:9},{wch:48},{wch:6}];
@@ -567,11 +591,14 @@ function kakaoHTML(){
   h+=`<div style="font-size:15px;font-weight:800;margin:14px 0 4px">📋 인수인계 사항</div>`;
   let any=false;
   data.hand.forEach(c=>{
-    const items=c.items.filter(it=>stripHtml(it.text)||it.status);
-    if(!items.length)return; any=true;
-    h+=`<div style="margin:9px 0 3px;font-weight:800;border-left:4px solid #1f2733;padding-left:8px">${esc(c.machine||'호기?')}${c.product?` <span style="font-weight:600;color:#555">/ ${esc(c.product)}</span>`:''}</div>`;
-    items.forEach(it=>{
-      h+=`<div style="padding:3px 0 3px 16px;font-size:14px;line-height:1.55;${it.imp?'background:#fdeede;border-left:3px solid #d35400;border-radius:4px;':''}">${it.imp?'🚩 ':'└ '}${it.text||''}${EBADGE(it.status)}</div>`;
+    const prods=c.products.map(p=>({p,items:p.items.filter(it=>stripHtml(it.text)||it.status)})).filter(x=>x.items.length);
+    if(!prods.length)return; any=true;
+    h+=`<div style="margin:9px 0 3px;font-weight:800;border-left:4px solid #1f2733;padding-left:8px">${esc(c.machine||'호기?')}</div>`;
+    prods.forEach(({p,items})=>{
+      if(p.name)h+=`<div style="margin:4px 0 2px 14px;font-weight:700;color:#1f2733">▸ ${esc(p.name)}</div>`;
+      items.forEach(it=>{
+        h+=`<div style="padding:3px 0 3px 26px;font-size:14px;line-height:1.55;${it.imp?'background:#fdeede;border-left:3px solid #d35400;border-radius:4px;':''}">${it.imp?'🚩 ':'└ '}${it.text||''}${EBADGE(it.status)}</div>`;
+      });
     });
   });
   if(!any)h+=`<div style="color:#999;padding:3px 16px">내용 없음</div>`;
